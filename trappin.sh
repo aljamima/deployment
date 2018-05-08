@@ -1,8 +1,4 @@
 #!/bin/bash
-#echo -e "\e[41;38;5;82m redBgGreenText \e[30;48;5;82m greenBgDarkText \e[0m" ##this line prints first in red second green
-### more efficient diff method: diff <(sort file1) <(sort file2)
-### *chit works* BUT, need to put old ips into array then verify new ip isnt one of the old ones.
-
 exec   > >(tee -ia /var/log/deployment.log)        ### work on logging still...
 exec  2> >(tee -ia /var/log/deployment.log >& 2)  ### I think this one is giving stderr back to stdout and i dont want that. 
 exec 19> /var/log/deployment.log
@@ -33,7 +29,7 @@ touch out1.sorted
 rm -f out2.sorted 2>/dev/null
 touch out2.sorted
 function pause(){
- read -n1 -rsp $'Press Any Key To Continue -OR- Ctrl+C to exit\n'
+ read -n1 -rp $'Press Any Key To Continue -OR- Ctrl+C to exit\n'
 }
 function hostEntry () {
 	echo -e "host $1 {\\tfixed-address $1 ; \\thardware ethernet $2}" >> dhcpEDITING.conf
@@ -87,6 +83,17 @@ do
 			while [[ -z "${foundIp// }" ]]; do    # NEEDED TO REMOVE SPACES TO ACCURATELY TEST IF VAR IS EMPTY AND NO SPACES> I THINK IT WAS SETTING VAR TO A SPACE AND ACCEPTING THAT AS NOT EMPTY
 				echo "Couldn't Find The New Device, Let Me Scan Again...  Check# $scanCount "
 				let "scanCount+=1"
+				echo "Ok, We're About To Scan For The $scanCount Time. Enter 'skip' To Skip To Next Miner"
+				read DISTR
+				DISTR=${DISTR,,}
+				case $DISTR in
+				     skip)
+				          continue
+				          ;;					     
+				     *)
+				          echo "OK, We Will Keep Looking"
+				          ;;
+				esac
 				foundIp=$(fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out2.txt)
 				sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted   ##FANCY SORT CHIT THAT ACTUALLY SORTS THE IPS PER COLUMN> the way its supposed to be
 				sort -t . -k 3,3n -k 4,4n out2.txt > out2.sorted
@@ -108,8 +115,8 @@ do
 		oldIp=$foundIp2
 		echo "Please UNPLUG Miner At $position"
 		pause
-		genMap="curl 'https://app.genesis-hive.com/scripts.php?id=createRigs' -H 'Origin: https://app.genesis-hive.com' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.9,es-419;q=0.8,es;q=0.7,ru;q=0.6' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'Accept: */*' -H 'Referer: https://app.genesis-hive.com/new.php/deployRigs' -H 'Cookie: PHPSESSID=lgdvemhtsrl33hb0v2v10ihtl4; apiKey=8a5f18ad8a4c75a19089eab75ec10d0d' -H 'Connection: keep-alive' --data 'rowNr[]=$container&shelfNr[]=$rack&levelNr[]=$shelf&indexNr[]=$column&mac[]=$mac&minerTypeId[]=104&cardsPerMiner[]=4&area[]=GrowMine&levelsPerShelf=null&minersPerLevel=null&newFarmId=45' --compressed  2>&1 | tee -a /var/log/deployment.log"
-		eval $(echo $genMap) ## added this to curl '2>&1 | tee -a /var/log/deployment.log' hopefully log curl output too..
+		genMap="curl 'https://app.genesis-hive.com/scripts.php?id=createRigs' -H 'Origin: https://app.genesis-hive.com' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.9,es-419;q=0.8,es;q=0.7,ru;q=0.6' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'Accept: */*' -H 'Referer: https://app.genesis-hive.com/new.php/deployRigs' -H 'Cookie: PHPSESSID=lgdvemhtsrl33hb0v2v10ihtl4; apiKey=8a5f18ad8a4c75a19089eab75ec10d0d' -H 'Connection: keep-alive' --data 'rowNr[]=$container&shelfNr[]=$rack&levelNr[]=$shelf&indexNr[]=$column&mac[]=$mac&minerTypeId[]=104&cardsPerMiner[]=4&area[]=GrowMine&levelsPerShelf=null&minersPerLevel=null&newFarmId=45' --compressed"
+		eval $(echo $genMap)
 		#curl 'http://$oldIp/cgi-bin/set_network_conf.cgi' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://$oldIp/network.html' -H 'Origin: http://$oldIp' -H 'X-Requested-With: XMLHttpRequest' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8'--data '_ant_conf_nettype=Static&_ant_conf_hostname=$position&_ant_conf_ipaddress=$newIp&_ant_conf_netmask=255.0.0.0&_ant_conf_gateway=10.0.0.1&_ant_conf_dnsservers=10.0.0.5+1.1.1.1' --compressed
  	        #sshpass -e ssh -o StrictHostKeyChecking=no root@$foundIp /sbin/ifconfig eth0 $ipVar netmask $mask && reboot -f
 	done
@@ -117,5 +124,6 @@ do
 done    
 # Close the output stream not sure if needed but why not?   ¯\_(ツ)_/¯
 set +x
-exec 19>&-		
+exec 19>&-	
+done	
 exit
