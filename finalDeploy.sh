@@ -1,4 +1,10 @@
 #!/bin/bash
+
+#######
+####### I think i need to change my scirpt to append the out1 nd out2 files. its overwriting shit right now
+#######
+
+
 #echo -e "\e[41;38;5;82m redBgGreenText \e[30;48;5;82m greenBgDarkText \e[0m" ##this line prints first in red second green
 ### more efficient diff method: diff <(sort file1) <(sort file2)
 ### *chit works* BUT, need to put old ips into array then verify new ip isnt one of the old ones.
