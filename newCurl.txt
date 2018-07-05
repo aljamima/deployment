@@ -1,1 +1,0 @@
--H 'Cookie: PHPSESSID=lgdvemhtsrl33hb0v2v10ihtl4; apiKey=8a5f18ad8a4c75a19089eab75ec10d0d'
