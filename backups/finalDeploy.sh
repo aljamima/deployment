@@ -1,10 +1,4 @@
 #!/bin/bash
-
-#######
-####### I think i need to change my scirpt to append the out1 nd out2 files. its overwriting shit right now
-#######
-
-
 #echo -e "\e[41;38;5;82m redBgGreenText \e[30;48;5;82m greenBgDarkText \e[0m" ##this line prints first in red second green
 ### more efficient diff method: diff <(sort file1) <(sort file2)
 ### *chit works* BUT, need to put old ips into array then verify new ip isnt one of the old ones.
@@ -42,7 +36,7 @@ function pause(){
  read -n1 -rsp $'Press Any Key To Continue -OR- Ctrl+C to exit\n'
 }
 function hostEntry () {
-	echo -e "host $1 {\\tfixed-address $1; \\thardware ethernet $2; }" >> dhcpEDITING.conf
+	echo -e "host $1 {\\tfixed-address $1 ; \\thardware ethernet $2}" >> dhcpEDITING.conf
 }
 function macFromIp () {
 server=$1
@@ -55,29 +49,24 @@ echo -e "\e[41;38;5;82m PLEASE UNPLUG ALL MINERS AND MAKE SURE YOUR DEPLOYMENT S
 echo -e "\e[41;38;5;82m --- DO NOT PLUG IN ANY OTHER DEVICES DURING THIS PROCEDURE --- \e[0m"
 pause
 echo "OK, RUNNING FIRST SCAN TO ELIMINATE THIS MACHINE AND NETWORK GEAR FROM OUR FUTURE SCANS"
-fping -a -g 192.168.5.1 192.168.5.254 2>/dev/null > out1.txt      # first scan to find ips we want to exclude from search 
+fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out1.txt      # first scan to find ips we want to exclude from search 
 
 # nested-loop.sh: Nested "for" loops
 total=0
-<<<<<<< HEAD
 container=3
 for rack in {8..9};                                      #--- num of racks to loop thru -- EXAMPLE: {start..end} ---#
-=======
-container=2
-for rack in {1..9};                                      #--- num of racks to loop thru -- EXAMPLE: {start..end} ---#
->>>>>>> 8b5be1f8c0c97bdd8b062ddfe1dabd7b9957614e
 do
   rackTotal=0
   for shelf in {1..5};                                   #--- num of shelves on the rack ---#
   do
-    for column in {1..5}                                 #--- num of slots on the shelf ---#
+    for column in {1..4}                                 #--- num of slots on the shelf ---#
 	do
 		let "rackTotal+=1"
 		let "total+=1"     
-		if [ "$shelf" -eq 5 ] && [ "$column" -gt 4 ]     # this means it wont do any miners past shelf 5 - position 4. so only 24 rigs that rack
-		then 
-			continue                                     # Skip rest of this particular loop iteration if its higher than number 24
-	 	fi
+		#if [ "$shelf" -eq 5 ] && [ "$column" -gt 4 ]     # this means it wont do any miners past shelf 5 - position 4. so only 24 rigs that rack
+		#then 
+		#	continue                                     # Skip rest of this particular loop iteration if its higher than number 24
+	 	#fi
 		position="$container-$rack-$shelf-$column"       # 1-1-1-1
 		ipVar="10.$container.$rack.$rackTotal"           # 10.x.x.x
 		mask="255.0.0.0"
@@ -85,7 +74,9 @@ do
 		pause 
 		echo "Scanning For New Devices"
 		echo -e "\e[41;38;5;82m SCANNING FOR NEW DEVICES, PLEASE WAIT... \e[0m"
-		fping -a -g 192.168.5.1 192.168.5.254 2>/dev/null > out2.txt		
+		fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out2.txt		
+#		sort out1.txt > out1.sorted
+#		sort out2.txt > out2.sorted
 		sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted
 		sort -t . -k 3,3n -k 4,4n out2.txt > out2.sorted
 		foundIp=$(diff --changed-group-format="%>" --unchanged-group-format="" "out1.sorted" "out2.sorted")
@@ -95,7 +86,7 @@ do
 			while [[ -z "${foundIp// }" ]]; do    # NEEDED TO REMOVE SPACES TO ACCURATELY TEST IF VAR IS EMPTY AND NO SPACES> I THINK IT WAS SETTING VAR TO A SPACE AND ACCEPTING THAT AS NOT EMPTY
 				echo "Couldn't Find The New Device, Let Me Scan Again...  Check# $scanCount "
 				let "scanCount+=1"
-				foundIp=$(fping -a -g 192.168.5.1 192.168.5.254 2>/dev/null > out2.txt)
+				foundIp=$(fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out2.txt)
 				sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted   ##FANCY SORT CHIT THAT ACTUALLY SORTS THE IPS PER COLUMN> the way its supposed to be
 				sort -t . -k 3,3n -k 4,4n out2.txt > out2.sorted
 				#sort out1.txt > out1.sorted
@@ -114,18 +105,10 @@ do
 		hostEntry $ipVar $mac    ## This is just making the DHCP config file just in case things dont go smoothe. 
  	    newIp=$ipVar
 		oldIp=$foundIp2
-<<<<<<< HEAD
 		#genMap="curl 'https://app.genesis-hive.com/scripts.php?id=createRigs' -H 'Origin: https://app.genesis-hive.com' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.9,es-419;q=0.8,es;q=0.7,ru;q=0.6' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'Accept: */*' -H 'Referer: https://app.genesis-hive.com/new.php/deployRigs' -H 'Cookie: PHPSESSID=lgdvemhtsrl33hb0v2v10ihtl4; apiKey=8a5f18ad8a4c75a19089eab75ec10d0d' -H 'Connection: keep-alive' --data 'rowNr[]=$container&shelfNr[]=$rack&levelNr[]=$shelf&indexNr[]=$column&mac[]=$mac&minerTypeId[]=104&cardsPerMiner[]=4&area[]=GrowMine&levelsPerShelf=null&minersPerLevel=null&newFarmId=45' --compressed"
-=======
-		devServer="zoomhash.us"
-		curl="'https://$devServer/add.php' -H 'Connection: keep-alive' -H 'Cache-Control: max-age=0' -H 'Origin: https://$devServer' -H 'Upgrade-Insecure-Requests: 1' -H 'Content-Type: application/x-www-form-urlencoded' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Referer: https://$devServer/add.php' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.9,es-419;q=0.8,es;q=0.7,ru;q=0.6' -H 'Cookie: PHPSESSID=2qtf08rm68kpd07i0qkb4f0f03'"
-		curlData="--data 'minerIp=$ipVar&macAddress=$mac&minerType=&plocation=$position&hashrate=X&maxTemp=X&farmName=X&numCards=X&uptime=X&poolUser=X&comments=X&Submit=Add' --compressed"
-		eval $(echo "curl $curl $curlData")
-		#genMap="'https://app.genesis-hive.com/scripts.php?id=createRigs' -H 'Origin: https://app.genesis-hive.com' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.9,es-419;q=0.8,es;q=0.7,ru;q=0.6' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'Accept: */*' -H 'Referer: https://app.genesis-hive.com/new.php/deployRigs' -H 'Cookie: PHPSESSID=lgdvemhtsrl33hb0v2v10ihtl4; apiKey=8a5f18ad8a4c75a19089eab75ec10d0d' -H 'Connection: keep-alive' --data 'rowNr[]=$container&shelfNr[]=$rack&levelNr[]=$shelf&indexNr[]=$column&mac[]=$mac&minerTypeId[]=104&cardsPerMiner[]=4&area[]=GrowMine&levelsPerShelf=null&minersPerLevel=null&newFarmId=45' --compressed"
->>>>>>> 8b5be1f8c0c97bdd8b062ddfe1dabd7b9957614e
 		#eval $(echo $genMap)
 		#curl 'http://$oldIp/cgi-bin/set_network_conf.cgi' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://$oldIp/network.html' -H 'Origin: http://$oldIp' -H 'X-Requested-With: XMLHttpRequest' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8'--data '_ant_conf_nettype=Static&_ant_conf_hostname=$position&_ant_conf_ipaddress=$newIp&_ant_conf_netmask=255.0.0.0&_ant_conf_gateway=10.0.0.1&_ant_conf_dnsservers=10.0.0.5+1.1.1.1' --compressed
- 	    #sshpass -e ssh -o StrictHostKeyChecking=no root@$foundIp /sbin/ifconfig eth0 $ipVar netmask $mask && reboot -f
+ 	        #sshpass -e ssh -o StrictHostKeyChecking=no root@$foundIp /sbin/ifconfig eth0 $ipVar netmask $mask && reboot -f
 	done
   done
 done    
