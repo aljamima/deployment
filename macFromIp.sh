@@ -2,7 +2,7 @@
 ### call this script as 'timeout 1 ./macFromIp.sh 10.2.2.2
 export SSHPASS='admin'
 function hostEntry () {
-	echo -e "host $1 {\\tfixed-address $3 ; \\thardware ethernet $2 }" >> dhcpEDITING.conf
+	echo -e "host $1 {\\tfixed-address $3; \\thardware ethernet $2; }" >> dhcpEDITING.conf
 }
 function macFromIp () {
 server=$1

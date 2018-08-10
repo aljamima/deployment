@@ -49,12 +49,12 @@ echo -e "\e[41;38;5;82m PLEASE UNPLUG ALL MINERS AND MAKE SURE YOUR DEPLOYMENT S
 echo -e "\e[41;38;5;82m --- DO NOT PLUG IN ANY OTHER DEVICES DURING THIS PROCEDURE --- \e[0m"
 pause
 echo "OK, RUNNING FIRST SCAN TO ELIMINATE THIS MACHINE AND NETWORK GEAR FROM OUR FUTURE SCANS"
-fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out1.txt      # first scan to find ips we want to exclude from search 
+fping -a -g 192.168.123.100 192.168.123.110 2>/dev/null > out1.txt      # first scan to find ips we want to exclude from search 
 
 # nested-loop.sh: Nested "for" loops
 total=0
-container=3
-for rack in {8..9};                                      #--- num of racks to loop thru -- EXAMPLE: {start..end} ---#
+container=2
+for rack in {1..9};                                      #--- num of racks to loop thru -- EXAMPLE: {start..end} ---#
 do
   rackTotal=0
   for shelf in {1..5};                                   #--- num of shelves on the rack ---#
@@ -74,9 +74,7 @@ do
 		pause 
 		echo "Scanning For New Devices"
 		echo -e "\e[41;38;5;82m SCANNING FOR NEW DEVICES, PLEASE WAIT... \e[0m"
-		fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out2.txt		
-#		sort out1.txt > out1.sorted
-#		sort out2.txt > out2.sorted
+		fping -a -g 192.168.123.100 192.168.123.110 2>/dev/null > out2.txt		
 		sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted
 		sort -t . -k 3,3n -k 4,4n out2.txt > out2.sorted
 		foundIp=$(diff --changed-group-format="%>" --unchanged-group-format="" "out1.sorted" "out2.sorted")
@@ -86,7 +84,7 @@ do
 			while [[ -z "${foundIp// }" ]]; do    # NEEDED TO REMOVE SPACES TO ACCURATELY TEST IF VAR IS EMPTY AND NO SPACES> I THINK IT WAS SETTING VAR TO A SPACE AND ACCEPTING THAT AS NOT EMPTY
 				echo "Couldn't Find The New Device, Let Me Scan Again...  Check# $scanCount "
 				let "scanCount+=1"
-				foundIp=$(fping -a -g 192.168.0.1 192.168.0.254 2>/dev/null > out2.txt)
+				fping -a -g 192.168.123.100 192.168.123.110 2>/dev/null > out2.txt
 				sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted   ##FANCY SORT CHIT THAT ACTUALLY SORTS THE IPS PER COLUMN> the way its supposed to be
 				sort -t . -k 3,3n -k 4,4n out2.txt > out2.sorted
 				#sort out1.txt > out1.sorted
@@ -101,14 +99,13 @@ do
 		echo "foundIP:$foundIp FoundIp2:$foundIp2"
 		mac=$(./macFromIp.sh $foundIp) ## it was running a seperate shell script in working version.
 		echo "Miner was $foundIp, changing to $ipVar"
-		echo "$foundIp2" >> out1.txt && sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted
+		
+		#echo "$foundIp2" >> out1.txt && sort -t . -k 3,3n -k 4,4n out1.txt > out1.sorted ### COMMENTED OUT CUZ WERE ONLY USING ONE IP AT A TIME...
+				
 		hostEntry $ipVar $mac    ## This is just making the DHCP config file just in case things dont go smoothe. 
  	    newIp=$ipVar
 		oldIp=$foundIp2
-		#genMap="curl 'https://app.genesis-hive.com/scripts.php?id=createRigs' -H 'Origin: https://app.genesis-hive.com' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.9,es-419;q=0.8,es;q=0.7,ru;q=0.6' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'Accept: */*' -H 'Referer: https://app.genesis-hive.com/new.php/deployRigs' -H 'Cookie: PHPSESSID=lgdvemhtsrl33hb0v2v10ihtl4; apiKey=8a5f18ad8a4c75a19089eab75ec10d0d' -H 'Connection: keep-alive' --data 'rowNr[]=$container&shelfNr[]=$rack&levelNr[]=$shelf&indexNr[]=$column&mac[]=$mac&minerTypeId[]=104&cardsPerMiner[]=4&area[]=GrowMine&levelsPerShelf=null&minersPerLevel=null&newFarmId=45' --compressed"
-		#eval $(echo $genMap)
-		#curl 'http://$oldIp/cgi-bin/set_network_conf.cgi' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://$oldIp/network.html' -H 'Origin: http://$oldIp' -H 'X-Requested-With: XMLHttpRequest' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8'--data '_ant_conf_nettype=Static&_ant_conf_hostname=$position&_ant_conf_ipaddress=$newIp&_ant_conf_netmask=255.0.0.0&_ant_conf_gateway=10.0.0.1&_ant_conf_dnsservers=10.0.0.5+1.1.1.1' --compressed
- 	        #sshpass -e ssh -o StrictHostKeyChecking=no root@$foundIp /sbin/ifconfig eth0 $ipVar netmask $mask && reboot -f
+
 	done
   done
 done    
